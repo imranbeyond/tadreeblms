@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Backend\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
@@ -39,7 +38,7 @@ class SmtpSettingsController extends Controller
     public function save(Request $request)
     {
         if (!auth()->user()->isAdmin()) {
-            return abort(403);
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -54,7 +53,7 @@ class SmtpSettingsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         try {
@@ -82,14 +81,16 @@ class SmtpSettingsController extends Controller
 
             file_put_contents($envFile, $envContent);
 
-            // Clear and cache config
-            Artisan::call('config:clear');
-            Artisan::call('config:cache');
+            return response()->json([
+                'success' => true,
+                'message' => __('labels.backend.smtp_settings.save_success')
+            ]);
 
-            return back()->withFlashSuccess(__('labels.backend.smtp_settings.save_success'));
         } catch (\Exception $e) {
             \Log::error('SMTP Settings Save Error: ' . $e->getMessage());
-            return back()->withErrors(['error' => __('labels.backend.smtp_settings.save_error') . ': ' . $e->getMessage()]);
+            return response()->json([
+                'message' => __('labels.backend.smtp_settings.save_error') . ': ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -99,7 +100,7 @@ class SmtpSettingsController extends Controller
     public function sendTestEmail(Request $request)
     {
         if (!auth()->user()->isAdmin()) {
-            return abort(403);
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -107,16 +108,16 @@ class SmtpSettingsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         try {
             // Dynamically configure mail settings for this request
             $mailConfig = [
-                'transport' => env('MAIL_MAILER', 'smtp'),
+                'transport' => 'smtp',
                 'host' => env('MAIL_HOST'),
                 'port' => env('MAIL_PORT'),
-                'encryption' => env('MAIL_ENCRYPTION'),
+                'encryption' => env('MAIL_ENCRYPTION') === 'null' ? null : env('MAIL_ENCRYPTION'),
                 'username' => env('MAIL_USERNAME'),
                 'password' => env('MAIL_PASSWORD'),
                 'timeout' => null,
@@ -132,10 +133,16 @@ class SmtpSettingsController extends Controller
                     ->subject(__('labels.backend.smtp_settings.test_email_subject'));
             });
 
-            return back()->withFlashSuccess(__('labels.backend.smtp_settings.test_email_success'));
+            return response()->json([
+                'success' => true,
+                'message' => __('labels.backend.smtp_settings.test_email_success')
+            ]);
+
         } catch (\Exception $e) {
             \Log::error('SMTP Test Email Error: ' . $e->getMessage());
-            return back()->withErrors(['test_error' => __('labels.backend.smtp_settings.test_email_error') . ': ' . $e->getMessage()]);
+            return response()->json([
+                'message' => __('labels.backend.smtp_settings.test_email_error') . ': ' . $e->getMessage()
+            ], 500);
         }
     }
 
