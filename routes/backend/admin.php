@@ -166,6 +166,11 @@ Route::group(['middleware' => 'permission:trainer_access'], function () {
     Route::post('settings/zoom', ['uses' => 'Admin\ConfigController@saveZoomSettings'])->name('zoom-settings');
     Route::post('test', ['uses' => 'Admin\ConfigController@saveZoomSettings'])->name('zoom-settings');
 
+    //===== SMTP Email Settings Routes =====//
+    Route::get('settings/smtp', ['uses' => 'Admin\SmtpSettingsController@index'])->name('smtp-settings');
+    Route::post('settings/smtp', ['uses' => 'Admin\SmtpSettingsController@save'])->name('smtp-settings.save');
+    Route::post('settings/smtp/test', ['uses' => 'Admin\SmtpSettingsController@sendTestEmail'])->name('smtp-settings.test');
+
 
     //===== Slider Routes =====/
     Route::resource('sliders', 'Admin\SliderController');
