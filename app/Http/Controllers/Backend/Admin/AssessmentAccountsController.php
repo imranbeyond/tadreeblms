@@ -377,7 +377,7 @@ class AssessmentAccountsController extends Controller
         $category = Category::where('deleted_at', '=', NULL)->get();
         
         $teachers = User::query()->role('student')
-                            ->whereIn('employee_type', ['internal'])
+                            // ->whereIn('employee_type', ['internal'])
                             ->groupBy('email')
                             ->orderBy('created_at', 'desc')
                             ->active()
@@ -403,7 +403,7 @@ class AssessmentAccountsController extends Controller
         $category = Category::where('deleted_at', '=', NULL)->get();
         
         $teachers = User::query()->role('student')
-                            ->whereIn('employee_type', ['internal'])
+                            // ->whereIn('employee_type', ['internal'])
                             ->groupBy('email')
                             ->orderBy('created_at', 'desc')
                             ->active()
