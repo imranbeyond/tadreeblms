@@ -5,7 +5,7 @@ return array(
   array(
     'sidebar' =>
     array(
-      'roles_mgt' => 'Permission Setting',
+      'roles_mgt' => 'Roles Permissions',
       'Invitations' => 'Invitations',
       'Send-Email-Notification' => 'Send Email Notification',
       'notification-settings' => 'Notification Settings',
@@ -116,7 +116,7 @@ return array(
       ),
       'teachers' =>
       array(
-        'title' => 'Teachers',
+        'title' => 'Trainers',
       ),
       'hero-slider' =>
       array(
@@ -239,7 +239,7 @@ return array(
     ),
     'access' =>
     array(
-      'title' => 'Access',
+      'title' => 'User Management',
       'roles' =>
       array(
         'management' => 'Role Management',
