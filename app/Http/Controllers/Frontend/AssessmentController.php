@@ -21,6 +21,8 @@ use Auth;
 use Carbon\Carbon;
 use CustomHelper;
 use Exception;
+use App\Notifications\Backend\AssessmentNotification;
+use App\Services\NotificationSettingsService;
 
 class AssessmentController extends Controller
 {
@@ -459,9 +461,31 @@ class AssessmentController extends Controller
                 
 
                 $progressdata = CustomHelper::updateUserProgress($user_id, $course_id);
+
+                // Assessment Submitted + Graded notifications
+                try {
+                    $notificationSettings = app(NotificationSettingsService::class);
+                    $notifUser = \App\Models\Auth\User::find($user_id);
+                    $courseName = $sb->course->title ?? 'Assessment';
+
+                    if ($notifUser) {
+                        if ($notificationSettings->shouldNotify('assessments', 'test_completed', 'email')) {
+                            AssessmentNotification::createAssessmentSubmittedBell($notifUser, $courseName);
+                        }
+
+                        if ($notificationSettings->shouldNotify('assessments', 'test_results_published', 'email')) {
+                            $scorePercent = round($sb->assignmentScore($user_id));
+                            $status = $sb->course->assignmentStatus($user_id, $scorePercent) ?? 'Completed';
+                            AssessmentNotification::sendAssessmentGradedEmail($notifUser, $courseName, $scorePercent, $status);
+                            AssessmentNotification::createAssessmentGradedBell($notifUser, $courseName, $scorePercent, $status);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send assessment notification: ' . $e->getMessage());
+                }
             }
-          
-            
+
+
         }
         
         

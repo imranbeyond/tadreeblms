@@ -28,6 +28,8 @@ use DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Session;
 use App\Exports\CourseAssignmentReportExport;
+use App\Notifications\Backend\CourseNotification;
+use App\Services\NotificationSettingsService;
 
 class CoursesController extends Controller
 {
@@ -602,6 +604,17 @@ class CoursesController extends Controller
             $course->temp_id = $uniqueId;
             $course->save();
 
+            // Course created notification
+            try {
+                $notificationSettings = app(NotificationSettingsService::class);
+                if ($notificationSettings->shouldNotify('courses', 'course_created', 'email')) {
+                    CourseNotification::sendCourseCreatedEmail(\Auth::user(), $course);
+                    CourseNotification::createCourseCreatedBell(\Auth::user(), $course);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send course created notification: ' . $e->getMessage());
+            }
+
             $course_id = $course->id;
 
             $course_type = 0; // all courses are set to zero
@@ -744,6 +757,24 @@ class CoursesController extends Controller
             $teachers = \Auth::user()->isAdmin() ? array_filter((array)$request->input('teachers')) : [\Auth::user()->id];
 
             $course->teachers()->sync($teachers);
+
+            // Trainer assigned notification
+            try {
+                $notificationSettings = app(NotificationSettingsService::class);
+                if ($notificationSettings->shouldNotify('trainers', 'trainer_assigned', 'email')) {
+                    foreach ($teachers as $teacherId) {
+                        if ($teacherId != \Auth::id()) {
+                            $trainer = User::find($teacherId);
+                            if ($trainer) {
+                                CourseNotification::sendTrainerAssignedEmail($trainer, $course, \Auth::user());
+                                CourseNotification::createTrainerAssignedBell($trainer, $course, \Auth::user());
+                            }
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send trainer assigned notification: ' . $e->getMessage());
+            }
 
             $internalStudents = \Auth::user()->isAdmin() ? (array)$request->input('internalStudents') : [\Auth::user()->id];
             $externalStudents = \Auth::user()->isAdmin() ? (array)$request->input('externalStudents') : [\Auth::user()->id];
@@ -1198,6 +1229,18 @@ class CoursesController extends Controller
             }
         }
         $course->save();
+
+        // Course published/unpublished notification
+        try {
+            $notificationSettings = app(NotificationSettingsService::class);
+            if ($notificationSettings->shouldNotify('courses', 'course_published', 'email')) {
+                $isPublished = ($course->published == 1);
+                CourseNotification::sendCoursePublishedEmail(\Auth::user(), $course, $isPublished);
+                CourseNotification::createCoursePublishedBell(\Auth::user(), $course, $isPublished);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send course published notification: ' . $e->getMessage());
+        }
 
         return back()->withFlashSuccess(trans('alerts.backend.general.updated'));
     }

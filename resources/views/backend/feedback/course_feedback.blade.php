@@ -97,7 +97,7 @@
     <div class="custom-select-wrapper mt-2">
         <select name="feedback_question_ids[]" class="form-control custom-select-box select2 js-example-questions-placeholder-multiple" multiple required>
             @foreach($questions as $id => $question)
-                <option value="{{ $id }}" @if(in_array($id, old('questions', []))) selected @endif>{{ $question }}</option>
+                <option value="1" @if(in_array($id, old('questions', []))) selected @endif>{{ $question }}</option>
             @endforeach
         </select>
         <span class="custom-select-icon">

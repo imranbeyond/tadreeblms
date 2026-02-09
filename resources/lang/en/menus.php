@@ -8,6 +8,7 @@ return array(
       'roles_mgt' => 'Permission Setting',
       'Invitations' => 'Invitations',
       'Send-Email-Notification' => 'Send Email Notification',
+      'notification-settings' => 'Notification Settings',
       'My-Assignments' => 'My Assignments',
       'My-Courses' => 'My Courses',
       'Employee-Requests' => 'Employee Requests',
@@ -69,7 +70,6 @@ return array(
         'social-login' => 'Social Login',
         'zoom_setting' => 'Zoom Setting',
         'landing_page_setting' => 'Landing Page Setting',
-        'smtp' => 'Email Settings (SMTP)',
       ),
       'debug-site' =>
       array(

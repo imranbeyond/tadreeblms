@@ -16,6 +16,7 @@ use App\Console\Commands\MakeNewTableForUserAssignment;
 use App\Console\Commands\RemoveDuplicateInternalUsers;
 use App\Console\Commands\RemoveDuplicateSubsribeCourse;
 use App\Console\Commands\RemoveUnwantedFiles;
+use App\Console\Commands\SendCourseNotifications;
 use App\Console\Commands\SendManualAssignmentReminder;
 use App\Console\Commands\TeacherProfileFix;
 use App\Console\Commands\UpdateAssesmentStatusAndScoreInSubscribeCourses;
@@ -59,6 +60,7 @@ class Kernel extends ConsoleKernel
         
         $schedule->command(DispatchSubscribeCourseJobs::class)->daily()->withoutOverlapping();
         $schedule->command(SendManualAssignmentReminder::class)->daily()->withoutOverlapping();
+        $schedule->command(SendCourseNotifications::class)->daily()->withoutOverlapping();
 
         //$schedule->command(FixOfflineCoursesDownloadButton::class)->daily()->withoutOverlapping();
         
