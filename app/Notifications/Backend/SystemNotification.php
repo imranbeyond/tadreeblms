@@ -112,93 +112,65 @@ class SystemNotification
     }
 
     // =========================================================================
-    // SYSTEM ERROR
+    // SYSTEM ERROR (commented out — not needed)
     // =========================================================================
 
-    public static function sendSystemErrorEmail($exception)
-    {
-        $errorKey = 'system_error_email_' . md5($exception->getMessage() . $exception->getFile());
-        if (Cache::has($errorKey)) {
-            return;
-        }
-        Cache::put($errorKey, true, 3600);
+    // public static function sendSystemErrorEmail($exception)
+    // {
+    //     $errorKey = 'system_error_email_' . md5($exception->getMessage() . $exception->getFile());
+    //     if (Cache::has($errorKey)) {
+    //         return;
+    //     }
+    //     Cache::put($errorKey, true, 3600);
+    //
+    //     $url = request()->fullUrl() ?? 'N/A';
+    //     $method = request()->method() ?? 'N/A';
+    //     $userAgent = request()->userAgent() ?? 'N/A';
+    //     $ip = request()->ip() ?? 'N/A';
+    //     $loggedUser = auth()->check() ? auth()->user()->full_name . ' (' . auth()->user()->email . ')' : 'Guest';
+    //     $stackTrace = $exception->getTraceAsString();
+    //
+    //     $admins = self::getAllAdmins();
+    //
+    //     foreach ($admins as $admin) {
+    //         $content = [
+    //             'email_heading' => app_name(),
+    //             'sub_heading' => 'System Error Alert',
+    //             'email_content' => '...',
+    //             'subject' => 'System Error - ' . e(Str::limit($exception->getMessage(), 80)) . ' - ' . app_name(),
+    //         ];
+    //
+    //         Mail::send('emails.default_email_template', ['content' => $content, 'user' => $admin], function ($message) use ($admin, $content) {
+    //             $message->to($admin->email)->subject($content['subject']);
+    //         });
+    //     }
+    // }
 
-        // Gather full error details
-        $url = request()->fullUrl() ?? 'N/A';
-        $method = request()->method() ?? 'N/A';
-        $userAgent = request()->userAgent() ?? 'N/A';
-        $ip = request()->ip() ?? 'N/A';
-        $loggedUser = auth()->check() ? auth()->user()->full_name . ' (' . auth()->user()->email . ')' : 'Guest';
-        $stackTrace = $exception->getTraceAsString();
-
-        $admins = self::getAllAdmins();
-
-        foreach ($admins as $admin) {
-            $content = [
-                'email_heading' => app_name(),
-                'sub_heading' => 'System Error Alert',
-                'email_content' => '<table style="width:100%;">
-                    <tr>
-                        <td>
-                            <h3>Hello ' . e($admin->full_name) . ',</h3>
-                            <p>A system error has occurred:</p>
-
-                            <table style="width:100%; border-collapse:collapse; margin:15px 0;">
-                                <tr><td style="padding:8px; border:1px solid #ddd; font-weight:bold; width:130px;">Error</td>
-                                    <td style="padding:8px; border:1px solid #ddd; color:#c0392b;">' . e($exception->getMessage()) . '</td></tr>
-                                <tr><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">Exception</td>
-                                    <td style="padding:8px; border:1px solid #ddd;">' . e(get_class($exception)) . '</td></tr>
-                                <tr><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">File</td>
-                                    <td style="padding:8px; border:1px solid #ddd;">' . e($exception->getFile()) . ' <strong>line ' . e($exception->getLine()) . '</strong></td></tr>
-                                <tr><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">URL</td>
-                                    <td style="padding:8px; border:1px solid #ddd;">' . e($method) . ' ' . e($url) . '</td></tr>
-                                <tr><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">IP Address</td>
-                                    <td style="padding:8px; border:1px solid #ddd;">' . e($ip) . '</td></tr>
-                                <tr><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">User</td>
-                                    <td style="padding:8px; border:1px solid #ddd;">' . e($loggedUser) . '</td></tr>
-                                <tr><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">Time</td>
-                                    <td style="padding:8px; border:1px solid #ddd;">' . e(now()->format('d M Y, h:i:s A')) . '</td></tr>
-                            </table>
-
-                            <p><strong>Stack Trace:</strong></p>
-                            <pre style="background:#f8f8f8; padding:12px; border:1px solid #ddd; font-size:12px; overflow-x:auto; max-height:400px; white-space:pre-wrap; word-wrap:break-word;">' . e($stackTrace) . '</pre>
-                        </td>
-                    </tr>
-                </table>',
-                'subject' => 'System Error - ' . e(Str::limit($exception->getMessage(), 80)) . ' - ' . app_name(),
-            ];
-
-            Mail::send('emails.default_email_template', ['content' => $content, 'user' => $admin], function ($message) use ($admin, $content) {
-                $message->to($admin->email)->subject($content['subject']);
-            });
-        }
-    }
-
-    public static function createSystemErrorBell($exception)
-    {
-        $errorKey = 'system_error_bell_' . md5($exception->getMessage() . $exception->getFile());
-        if (Cache::has($errorKey)) {
-            return;
-        }
-        Cache::put($errorKey, true, 3600);
-
-        $file = basename($exception->getFile()) . ':' . $exception->getLine();
-
-        $admins = self::getAllAdmins();
-
-        foreach ($admins as $admin) {
-            UserNotification::create([
-                'user_id' => $admin->id,
-                'type' => 'system_error',
-                'title' => 'System Error',
-                'message' => Str::limit($exception->getMessage(), 150) . ' (' . $file . ')',
-                'icon' => 'fas fa-exclamation-circle',
-                'icon_color' => 'danger',
-                'link' => '#',
-                'is_read' => false,
-            ]);
-        }
-    }
+    // public static function createSystemErrorBell($exception)
+    // {
+    //     $errorKey = 'system_error_bell_' . md5($exception->getMessage() . $exception->getFile());
+    //     if (Cache::has($errorKey)) {
+    //         return;
+    //     }
+    //     Cache::put($errorKey, true, 3600);
+    //
+    //     $file = basename($exception->getFile()) . ':' . $exception->getLine();
+    //
+    //     $admins = self::getAllAdmins();
+    //
+    //     foreach ($admins as $admin) {
+    //         UserNotification::create([
+    //             'user_id' => $admin->id,
+    //             'type' => 'system_error',
+    //             'title' => 'System Error',
+    //             'message' => Str::limit($exception->getMessage(), 150) . ' (' . $file . ')',
+    //             'icon' => 'fas fa-exclamation-circle',
+    //             'icon_color' => 'danger',
+    //             'link' => '#',
+    //             'is_read' => false,
+    //         ]);
+    //     }
+    // }
 
     // =========================================================================
     // HELPERS
