@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class FeedbackQuestion extends Model
 {
+    
     use SoftDeletes;
     protected $fillable = ['temp_id','question', 'created_by', 'question_type', 'solution', 'option_json'];
 

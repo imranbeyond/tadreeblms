@@ -177,6 +177,12 @@ Route::group(['middleware' => 'permission:trainer_access'], function () {
     Route::post('settings/zoom', ['uses' => 'Admin\ConfigController@saveZoomSettings'])->name('zoom-settings');
     Route::post('test', ['uses' => 'Admin\ConfigController@saveZoomSettings'])->name('zoom-settings');
 
+    //===== Notification Settings Routes =====//
+    Route::get('settings/notifications', 'Admin\NotificationSettingsController@index')->name('notification-settings');
+    Route::post('settings/notifications/update', 'Admin\NotificationSettingsController@update')->name('notification-settings.update');
+    Route::post('settings/notifications/bulk-module', 'Admin\NotificationSettingsController@bulkUpdateModule')->name('notification-settings.bulk-module');
+    Route::post('settings/notifications/bulk-channel', 'Admin\NotificationSettingsController@bulkUpdateChannel')->name('notification-settings.bulk-channel');
+    Route::get('settings/notifications/audit-log', 'Admin\NotificationSettingsController@auditLog')->name('notification-settings.audit-log');
    //===== License Settings Routes =====//
     Route::get('settings/license', ['uses' => 'Admin\LicenseController@index'])->name('license-settings');
     Route::post('settings/license/activate', ['uses' => 'Admin\LicenseController@activate'])->name('license.activate');
@@ -451,6 +457,13 @@ Route::get('messages', ['uses' => 'MessagesController@index', 'as' => 'messages'
 Route::post('messages/unread', ['uses' => 'MessagesController@getUnreadMessages', 'as' => 'messages.unread']);
 Route::post('messages/send', ['uses' => 'MessagesController@send', 'as' => 'messages.send']);
 Route::post('messages/reply', ['uses' => 'MessagesController@reply', 'as' => 'messages.reply']);
+
+
+//==== User Notifications Routes =====//
+Route::post('notifications/unread', ['uses' => 'Admin\UserNotificationController@getUnreadNotifications', 'as' => 'notifications.unread']);
+Route::post('notifications/mark-read/{id}', ['uses' => 'Admin\UserNotificationController@markAsRead', 'as' => 'notifications.mark_read']);
+Route::post('notifications/mark-all-read', ['uses' => 'Admin\UserNotificationController@markAllAsRead', 'as' => 'notifications.mark_all_read']);
+Route::get('notifications', ['uses' => 'Admin\UserNotificationController@index', 'as' => 'notifications.index']);
 
 
 //=== Invoice Routes =====//

@@ -731,6 +731,13 @@
                         </a>
                     </li>
 
+                    <li class="nav-item">
+                        <a class="nav-link {{ active_class(Active::checkUriPattern('admin/settings/notifications*')) }}"
+                            href="{{ route('admin.notification-settings') }}">
+                            <span class="title">@lang('menus.backend.sidebar.notification-settings')</span>
+                        </a>
+                    </li>
+
                     <li class="nav-item ">
                         <a class="nav-link {{ active_class(Active::checkUriPattern('admin/ldap-setting')) }}"
                             href="{{ route('admin.ldap-setting') }}">

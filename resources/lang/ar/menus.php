@@ -37,6 +37,7 @@ return array(
       'roles_mgt' => 'إعدادات الأذونات',
       'Invitations' => 'الدعوات',
       'Send-Email-Notification' => 'إرسال إشعار البريد الإلكتروني',
+      'notification-settings' => 'إعدادات الإشعارات',
       'My-Assignments' => 'مهامي',
       'My-Courses' => 'دوراتي',
       'Employee-Requests' => 'طلبات الموظفين',
@@ -181,7 +182,6 @@ return array(
         'social-login' => 'تسجيل الدخول الاجتماعي',
         'title' => 'الإعدادات',
         'landing_page_setting' => 'إعدادات الصفحة المقصودة',
-        'smtp' => 'إعدادات البريد الإلكتروني (SMTP)',
       ),
       'site-management' =>
       array(

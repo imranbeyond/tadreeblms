@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\View;
 use App\Resolvers\SocialUserResolver;
 use Coderello\SocialGrant\Resolvers\SocialUserResolverInterface;
 use App\Helpers\CustomHelper;
+use App\Services\NotificationSettingsService;
 
 /**
  * Class AppServiceProvider.
@@ -223,6 +224,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        // Register NotificationSettingsService as singleton
+        $this->app->singleton(NotificationSettingsService::class, function ($app) {
+            return new NotificationSettingsService();
+        });
+
         /*
          * Sets third party service providers that are only needed on local/testing environments
          */

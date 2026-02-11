@@ -8,6 +8,7 @@ return array(
       'roles_mgt' => 'Roles Permissions',
       'Invitations' => 'Invitations',
       'Send-Email-Notification' => 'Send Email Notification',
+      'notification-settings' => 'Notification Settings',
       'My-Assignments' => 'My Assignments',
       'My-Courses' => 'My Courses',
       'Employee-Requests' => 'Employee Requests',

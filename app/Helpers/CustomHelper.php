@@ -508,14 +508,22 @@ class CustomHelper
                             ]
                         );
 
+                    // Send course completed notification
+                    try {
+                        $notificationSettings = app(\App\Services\NotificationSettingsService::class);
+                        $completedUser = User::find($user_id);
+                        $completedCourse = Course::find($course_id);
 
-                    // DB::table('subscribe_courses')->where('course_id', $course_id)
-                    //         ->where('user_id', $user_id)
-                    //         ->update(
-                    //             [
-                    //                 'is_completed' => 1,
-                    //                 'completed_at' => Carbon::now()->format('Y-m-d H:i:s')
-                    //             ]);
+                        if ($completedUser && $completedCourse) {
+                            if ($notificationSettings->shouldNotify('trainees', 'trainee_completed_course', 'email')) {
+                                \App\Notifications\Backend\CourseNotification::sendCourseCompletedEmail($completedUser, $completedCourse);
+                                \App\Notifications\Backend\CourseNotification::createCourseCompletedBell($completedUser, $completedCourse);
+                            }
+
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to send course/pathway completed notification: ' . $e->getMessage());
+                    }
                 }
             }
         }

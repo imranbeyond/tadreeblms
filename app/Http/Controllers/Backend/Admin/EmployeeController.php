@@ -31,6 +31,8 @@ use Config;
 use App\Imports\UsersImport;
 use App\Jobs\GenerateInternalAttendanceReport;
 use App\Jobs\SendEmailJob;
+use App\Notifications\Backend\UserAuthNotification;
+use App\Services\NotificationSettingsService;
 use Illuminate\Support\Facades\Hash;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\Mail;
@@ -92,6 +94,29 @@ class EmployeeController extends Controller
     public function externalIndex()
     {
         return view('backend.employee.external_index');
+    }
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls'
+        ]);
+
+        try {
+            Excel::import(new EmployeeImport, $request->file('file'));
+
+            return redirect()->back()->with('success', 'Employees imported successfully!');
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            return redirect()->back()->withErrors($failures);
+        }
+    }
+
+    public function downloadSample()
+    {
+        return Excel::download(
+            new EmployeeSampleExport(),
+            'employee_import_sample.xlsx'
+        );
     }
 
     /**
@@ -421,13 +446,19 @@ class EmployeeController extends Controller
 
             dispatch(new SendEmailJob($details));
         } catch (Exception $e) {
-            return response()->json(['status' => 'success', 'clientmsg' => 'Added successfully Mail Not Send']);
+            \Log::error('Employee welcome email failed: ' . $e->getMessage());
         }
 
-        // if($save_id == true){
-        //     dd('ki');
-        //     return redirect()->route('admin.employee.index')->withFlashSuccess('Activation Mail send successfully');
-        // }
+        // --- Notification: Trainee Created (bell for admins) ---
+        try {
+            $notificationSettings = app(NotificationSettingsService::class);
+            if ($notificationSettings->shouldNotify('users', 'user_created', 'email')) {
+                UserAuthNotification::sendUserCreatedEmail($employee, 'Trainee');
+            }
+            UserAuthNotification::createUserCreatedBell($employee, 'Trainee');
+        } catch (\Exception $e) {
+            \Log::error('Employee created notification failed: ' . $e->getMessage());
+        }
 
         return response()->json(['status' => 'success', 'clientmsg' => 'Added successfully']);
         // return redirect()->route('admin.employee.index')->withFlashSuccess(trans('alerts.backend.general.created'));
@@ -529,6 +560,16 @@ class EmployeeController extends Controller
                 \Log::info('User updated - Keygen sync result', $result);
         } catch (\Exception $e) {
                 \Log::error('User updated - Keygen sync error', ['error' => $e->getMessage()]);
+        }
+
+        // --- Notification: Trainee Updated (bell for admins) ---
+        try {
+            $notificationSettings = app(NotificationSettingsService::class);
+            if ($notificationSettings->shouldNotify('users', 'user_updated', 'email')) {
+                UserAuthNotification::createUserUpdatedBell($teacher, 'Trainee');
+            }
+        } catch (\Exception $e) {
+            \Log::error('Employee updated notification failed: ' . $e->getMessage());
         }
 
         return redirect()->route('admin.employee.index')->withFlashSuccess(trans('alerts.backend.general.updated'));
@@ -876,142 +917,142 @@ class EmployeeController extends Controller
     }
 
 
-    public function import(Request $request)
-    {
+    // public function import(Request $request)
+    // {
 
-        $IsSaved = false;
+    //     $IsSaved = false;
 
-        if (request()->hasFile('file')) {
+    //     if (request()->hasFile('file')) {
 
-            $maximum_execution_time = Config::get('constants.maximum_execution_time');
-            set_time_limit($maximum_execution_time);
+    //         $maximum_execution_time = Config::get('constants.maximum_execution_time');
+    //         set_time_limit($maximum_execution_time);
 
-            $ExcelData = Excel::toArray(new UsersImport, request()->file('file'));
-            if (!empty($ExcelData)) {
-                $ExtractedDataFromExcel = $ExcelData[0];
+    //         $ExcelData = Excel::toArray(new UsersImport, request()->file('file'));
+    //         if (!empty($ExcelData)) {
+    //             $ExtractedDataFromExcel = $ExcelData[0];
 
-                if (!empty($ExtractedDataFromExcel)) {
-                    $count = 0;
+    //             if (!empty($ExtractedDataFromExcel)) {
+    //                 $count = 0;
 
-                    $TotalData = count($ExtractedDataFromExcel) - 0;
-                    // echo '<pre>';    print_r($ExtractedDataFromExcel);die;
-                    foreach ($ExtractedDataFromExcel as $ExcelKey => $ExcelValue) {
+    //                 $TotalData = count($ExtractedDataFromExcel) - 0;
+    //                 // echo '<pre>';    print_r($ExtractedDataFromExcel);die;
+    //                 foreach ($ExtractedDataFromExcel as $ExcelKey => $ExcelValue) {
 
-                        if ($count == 0) {
-                            $count++;
-                            continue;
-                        }
-                        $count++;
-                        $IsDataSuccessfullyInserted = false;
-                        $exist_email = User::where('email', trim($ExcelValue[2]))->first();
-                        if (empty($exist_email)) {
-                            if ($ExcelValue[2] != null) {
-                                $RetailerPlanId = 0;
-                                $RetailerPlan = new User();
-                                $RetailerPlan->emp_id = trim($ExcelValue[0]);
-                                $RetailerPlan->first_name = trim($ExcelValue[1]);
-                                $RetailerPlan->last_name = trim($ExcelValue[2]);
-                                $RetailerPlan->email = trim($ExcelValue[3]);
-                                $RetailerPlan->work_id = trim($ExcelValue[6]);
-                                $RetailerPlan->password = Hash::make($ExcelValue[4]);
-                                //echo '<pre>';    print_r($ExcelValue);die;
-                                $RetailerPlan->gender = trim($ExcelValue[7]);
-                                $RetailerPlan->confirmed = 1;
-                                $RetailerPlan->employee_type = 'internal';
-                                $RetailerPlan->assignRole('student');
-                                if ($RetailerPlan->save()) {
-                                    $RetailerPlanId = $RetailerPlan->id;
+    //                     if ($count == 0) {
+    //                         $count++;
+    //                         continue;
+    //                     }
+    //                     $count++;
+    //                     $IsDataSuccessfullyInserted = false;
+    //                     $exist_email = User::where('email', trim($ExcelValue[2]))->first();
+    //                     if (empty($exist_email)) {
+    //                         if ($ExcelValue[2] != null) {
+    //                             $RetailerPlanId = 0;
+    //                             $RetailerPlan = new User();
+    //                             $RetailerPlan->emp_id = trim($ExcelValue[0]);
+    //                             $RetailerPlan->first_name = trim($ExcelValue[1]);
+    //                             $RetailerPlan->last_name = trim($ExcelValue[2]);
+    //                             $RetailerPlan->email = trim($ExcelValue[3]);
+    //                             $RetailerPlan->work_id = trim($ExcelValue[6]);
+    //                             $RetailerPlan->password = Hash::make($ExcelValue[4]);
+    //                             //echo '<pre>';    print_r($ExcelValue);die;
+    //                             $RetailerPlan->gender = trim($ExcelValue[7]);
+    //                             $RetailerPlan->confirmed = 1;
+    //                             $RetailerPlan->employee_type = 'internal';
+    //                             $RetailerPlan->assignRole('student');
+    //                             if ($RetailerPlan->save()) {
+    //                                 $RetailerPlanId = $RetailerPlan->id;
 
 
-                                    $mail = new PHPMailer(true);     // Passing `true` enables exceptions
-                                    try {
-                                        $mail->SMTPDebug = 0;
-                                        $mail->isSMTP();
-                                        $mail->Host = env('MAIL_HOST');             //  smtp host
-                                        $mail->SMTPAuth = true;
-                                        $mail->Username = env('MAIL_USERNAME');  //  sender username
-                                        $mail->Password = env('MAIL_PASSWORD');       // sender password
-                                        $mail->SMTPSecure = 'tls';                  // encryption - ssl/tls
-                                        $mail->Port = 587;                          // port - 587/465
-                                        $mail->setFrom(env('MAIL_USERNAME'), env('APP_NAME'));
-                                        $mail->addAddress($ExcelValue[3]);
-                                        $mail->isHTML(true);                // Set email content format to HTML
-                                        $mail->Subject = "New User Registered " . env('APP_NAME');
-                                        $mail->Body    = "# Hello $ExcelValue[1]<br>
+    //                                 $mail = new PHPMailer(true);     // Passing `true` enables exceptions
+    //                                 try {
+    //                                     $mail->SMTPDebug = 0;
+    //                                     $mail->isSMTP();
+    //                                     $mail->Host = env('MAIL_HOST');             //  smtp host
+    //                                     $mail->SMTPAuth = true;
+    //                                     $mail->Username = env('MAIL_USERNAME');  //  sender username
+    //                                     $mail->Password = env('MAIL_PASSWORD');       // sender password
+    //                                     $mail->SMTPSecure = 'tls';                  // encryption - ssl/tls
+    //                                     $mail->Port = 587;                          // port - 587/465
+    //                                     $mail->setFrom(env('MAIL_USERNAME'), env('APP_NAME'));
+    //                                     $mail->addAddress($ExcelValue[3]);
+    //                                     $mail->isHTML(true);                // Set email content format to HTML
+    //                                     $mail->Subject = "New User Registered " . env('APP_NAME');
+    //                                     $mail->Body    = "# Hello $ExcelValue[1]<br>
 
-In our system new user registered, User details are below<br>
+    //                                     In our system new user registered, User details are below<br>
 
-Name * $ExcelValue[1] * <br>
-Email * $ExcelValue[3] * <br>
-Password * $ExcelValue[4] *
+    //                                     Name * $ExcelValue[1] * <br>
+    //                                     Email * $ExcelValue[3] * <br>
+    //                                     Password * $ExcelValue[4] *
 
-<br>
-Thanks,<br>" . env('APP_NAME');
-                                        $mail->send();
-                                    } catch (Exception $e) {
-                                        //return response()->json([ 'status'=>'success' , 'clientmsg' => 'Added successfully Mail Not Send' ]);
-                                    }
-                                }
-                                if ($RetailerPlanId > 0) {
+    //                                     <br>
+    //                                     Thanks,<br>" . env('APP_NAME');
+    //                                     $mail->send();
+    //                                 } catch (Exception $e) {
+    //                                     //return response()->json([ 'status'=>'success' , 'clientmsg' => 'Added successfully Mail Not Send' ]);
+    //                                 }
+    //                             }
+    //                             if ($RetailerPlanId > 0) {
 
-                                    $RetailerPlanDetail = new EmployeeProfile();
-                                    $RetailerPlanDetail->user_id = $RetailerPlanId;
-                                    if ($ExcelValue[5]) {
-                                        $RetailerPlanDetail->department = trim($ExcelValue[5]);
-                                    }
+    //                                 $RetailerPlanDetail = new EmployeeProfile();
+    //                                 $RetailerPlanDetail->user_id = $RetailerPlanId;
+    //                                 if ($ExcelValue[5]) {
+    //                                     $RetailerPlanDetail->department = trim($ExcelValue[5]);
+    //                                 }
 
-                                    $RetailerPlanDetail->position = trim($ExcelValue[6]);
+    //                                 $RetailerPlanDetail->position = trim($ExcelValue[6]);
 
-                                    if ($RetailerPlanDetail->save()) {
-                                        $IsDataSuccessfullyInserted = true;
-                                        $IsSaved = true;
-                                    }
+    //                                 if ($RetailerPlanDetail->save()) {
+    //                                     $IsDataSuccessfullyInserted = true;
+    //                                     $IsSaved = true;
+    //                                 }
 
-                                    $exist_slug = Department::where('slug', str_slug(trim($ExcelValue[5])))->first();
-                                    if ($exist_slug) {
-                                        // return redirect()->route('admin.employee.index')->withFlashDanger('Department title is already exist');
-                                        $RetailerPlanDetail->department = $exist_slug->id;
-                                        $RetailerPlanDetail->save();
-                                        $IsDataSuccessfullyInserted = true;
-                                    } else {
-                                        $dep = new Department();
-                                        $dep->title = trim($ExcelValue[5]);
-                                        $dep->slug = str_slug(trim($ExcelValue[5]));
-                                        $message = trim($ExcelValue[1]);
-                                        $dom = new \DOMDocument();
-                                        $dom->loadHtml(mb_convert_encoding($message,  'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-                                        $dep->content = $dom->saveHTML();
-                                        $dep->user_id = auth()->user()->id;
-                                        $dep->published = 1;
-                                        $dep->sidebar = 1;
-                                        if ($dep->save()) {
-                                            if (empty($ExcelValue[4])) {
-                                                $RetailerPlanDetail->department = $dep->id;
-                                                $RetailerPlanDetail->save();
-                                            }
-                                            // $RetailerPlanId = $RetailerPlan->id;
-                                            $IsDataSuccessfullyInserted = true;
-                                        }
-                                    }
-                                    // $dep = new Department();
+    //                                 $exist_slug = Department::where('slug', str_slug(trim($ExcelValue[5])))->first();
+    //                                 if ($exist_slug) {
+    //                                     // return redirect()->route('admin.employee.index')->withFlashDanger('Department title is already exist');
+    //                                     $RetailerPlanDetail->department = $exist_slug->id;
+    //                                     $RetailerPlanDetail->save();
+    //                                     $IsDataSuccessfullyInserted = true;
+    //                                 } else {
+    //                                     $dep = new Department();
+    //                                     $dep->title = trim($ExcelValue[5]);
+    //                                     $dep->slug = str_slug(trim($ExcelValue[5]));
+    //                                     $message = trim($ExcelValue[1]);
+    //                                     $dom = new \DOMDocument();
+    //                                     $dom->loadHtml(mb_convert_encoding($message,  'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+    //                                     $dep->content = $dom->saveHTML();
+    //                                     $dep->user_id = auth()->user()->id;
+    //                                     $dep->published = 1;
+    //                                     $dep->sidebar = 1;
+    //                                     if ($dep->save()) {
+    //                                         if (empty($ExcelValue[4])) {
+    //                                             $RetailerPlanDetail->department = $dep->id;
+    //                                             $RetailerPlanDetail->save();
+    //                                         }
+    //                                         // $RetailerPlanId = $RetailerPlan->id;
+    //                                         $IsDataSuccessfullyInserted = true;
+    //                                     }
+    //                                 }
+    //                                 // $dep = new Department();
 
-                                }
-                                if ($IsDataSuccessfullyInserted) {
-                                    $TotalData++;
-                                }
-                            }
-                        } else if ($exist_email) {
-                            return redirect()->route('admin.employee.index')->withFlashDanger('Email is already exist');
-                        }
-                    }
-                }
-            }
-        }
-        if ($IsSaved) {
-            return redirect()->route('admin.employee.index')->withFlashSuccess(trans('alerts.backend.general.created'));
-        }
-        return redirect()->route('admin.employee.index')->withFlashDanger('Something went wrong');
-    }
+    //                             }
+    //                             if ($IsDataSuccessfullyInserted) {
+    //                                 $TotalData++;
+    //                             }
+    //                         }
+    //                     } else if ($exist_email) {
+    //                         return redirect()->route('admin.employee.index')->withFlashDanger('Email is already exist');
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     if ($IsSaved) {
+    //         return redirect()->route('admin.employee.index')->withFlashSuccess(trans('alerts.backend.general.created'));
+    //     }
+    //     return redirect()->route('admin.employee.index')->withFlashDanger('Something went wrong');
+    // }
 
     public function external_employee_create()
     {
@@ -1087,7 +1128,18 @@ Thanks,<br>" . env('APP_NAME');
 
 
         } catch (Exception $e) {
-            return response()->json(['status' => 'success', 'clientmsg' => 'Added successfully Mail Not Send']);
+            \Log::error('External employee welcome email failed: ' . $e->getMessage());
+        }
+
+        // --- Notification: Trainee Created (bell for admins) ---
+        try {
+            $notificationSettings = app(NotificationSettingsService::class);
+            if ($notificationSettings->shouldNotify('users', 'user_created', 'email')) {
+                UserAuthNotification::sendUserCreatedEmail($employee, 'Trainee');
+            }
+            UserAuthNotification::createUserCreatedBell($employee, 'Trainee');
+        } catch (\Exception $e) {
+            \Log::error('External employee created notification failed: ' . $e->getMessage());
         }
 
         return redirect()->route('admin.employee.external_index')->withFlashSuccess(trans('alerts.backend.general.created'));

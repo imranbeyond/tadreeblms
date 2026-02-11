@@ -1806,5 +1806,35 @@ return array(
   ),
   'course_feedback_questions' => [
     'title' => 'Course Feedback Questions'
-  ]
+  ],
+  'notifications' => [
+    'title' => 'Notifications',
+    'mark_all_as_read' => 'Mark All as Read',
+    'mark_as_read' => 'Mark as read',
+    'no_notifications_found' => 'No notifications found',
+    'settings' => [
+      'title' => 'Notification Settings',
+      'global_channel_controls' => 'Global Channel Controls',
+      'email_notifications' => 'Email Notifications',
+      'view_audit_log' => 'View Audit Log',
+      'failed_to_update' => 'Failed to update setting',
+      'failed_to_update_channel' => 'Failed to update channel settings',
+    ],
+    'audit_log' => [
+      'title' => 'Notification Settings Audit Log',
+      'back_to_settings' => 'Back to Settings',
+      'date_time' => 'Date/Time',
+      'user' => 'User',
+      'action' => 'Action',
+      'module' => 'Module',
+      'event' => 'Event',
+      'channel' => 'Channel',
+      'old_value' => 'Old Value',
+      'new_value' => 'New Value',
+      'ip_address' => 'IP Address',
+      'enabled' => 'Enabled',
+      'disabled' => 'Disabled',
+      'no_logs_found' => 'No audit logs found',
+    ],
+  ],
 );

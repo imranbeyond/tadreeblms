@@ -894,10 +894,7 @@ function removeOptions(pos) {
             alert('Please add at least 2 options');
             return;
         }
-        if (type != 3 && !options.some(opt => opt[1] === 1)) {
-            alert('Please select at least one correct answer');
-            return;
-        }
+       
 
         const data = {
             _token: "{{ csrf_token() }}",

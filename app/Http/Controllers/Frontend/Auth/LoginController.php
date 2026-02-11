@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth as LaravelAuth;
 use Session;
+use App\Notifications\Backend\SystemNotification;
+use App\Services\NotificationSettingsService;
 use Illuminate\Support\Facades\App;
 use App\Ldap\LdapUser;
 use App\Models\Auth\User;
@@ -141,6 +143,17 @@ class LoginController extends Controller
                 'success' => true,
                 'redirect' => $redirect,
             ], Response::HTTP_OK);
+        }
+
+        // Failed login notification
+        try {
+            $notificationSettings = app(NotificationSettingsService::class);
+            if ($notificationSettings->shouldNotify('system', 'failed_login', 'email')) {
+                SystemNotification::sendFailedLoginEmail($request->email, $request->ip());
+                SystemNotification::createFailedLoginBell($request->email, $request->ip());
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send failed login notification: ' . $e->getMessage());
         }
 
         try {
