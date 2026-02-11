@@ -14,6 +14,10 @@ use App\Models\Reports;
 use App\Models\Stripe\SubscribeCourse;
 use App\Models\{Department, ChapterStudent, Certificate, UserCourseDetail, Course, ExportInternalReportNotification, PasswordReset, Test};
 use App\Models\Position;
+use App\Models\courseAssignment;
+use App\Models\CourseAssignmentToUser;
+use App\Models\CourseFeedback;
+use App\Models\Assignment;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Gate;
@@ -21,6 +25,7 @@ use Yajra\DataTables\DataTables;
 use DB;
 use Carbon\Carbon;
 use App\Helpers\CustomHelper;
+use App\Helpers\CustomValidation;
 use Maatwebsite\Excel\Facades\Excel;
 use Config;
 use App\Imports\UsersImport;
@@ -651,10 +656,23 @@ class EmployeeController extends Controller
 
     public function enrolled_student($course_id)
     {
-        //dd($course_id);
-        // $subscribe_courses = auth()->user()->subscribeCourses();
-        return view('backend.employee.enrolled_employee', ['course_id' => $course_id]);
+        $already_enrolled_ids = SubscribeCourse::where('course_id', $course_id)
+            ->pluck('user_id')
+            ->toArray();
+
+        $teachers = User::query()->role('student')
+            ->whereNotIn('users.id', $already_enrolled_ids)
+            ->groupBy('email')
+            ->orderBy('created_at', 'desc')
+            ->active()
+            ->get()
+            ->pluck('name', 'id');
+
+        $departments = Department::all();
+
+        return view('backend.employee.enrolled_employee', compact('course_id', 'teachers', 'departments'));
     }
+
 
     public function all_enrolled_student($course_id)
     {
