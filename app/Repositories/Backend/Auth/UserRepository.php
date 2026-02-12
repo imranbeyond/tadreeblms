@@ -184,7 +184,7 @@ class UserRepository extends BaseRepository
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
                 'email' => $data['email'],
-                'employee_type' => $data['employee_type'],
+//'employee_type' => $data['employee_type'],
             ])) {
                 // Add selected roles/permissions
                 $user->syncRoles($data['roles']);

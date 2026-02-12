@@ -224,7 +224,7 @@ $(document).ready(function() {
 
         var btn = $('#btnSaveSettings');
         var btnHtml = btn.html();
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Saving...');
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> {{ __("labels.backend.smtp_settings.saving") }}');
 
         $.ajax({
             url: '{{ route("admin.smtp-settings.save") }}',
@@ -232,11 +232,11 @@ $(document).ready(function() {
             data: $(this).serialize(),
             dataType: 'json',
             success: function(response) {
-                showAlert('success', response.message || 'Settings saved successfully!');
+                showAlert('success', response.message || '{{ __("labels.backend.smtp_settings.save_success") }}');
                 btn.prop('disabled', false).html(btnHtml);
             },
             error: function(xhr) {
-                var msg = 'Failed to save settings.';
+                var msg = '{{ __("labels.backend.smtp_settings.save_error") }}';
                 if (xhr.responseJSON) {
                     if (xhr.responseJSON.message) {
                         msg = xhr.responseJSON.message;
@@ -260,7 +260,7 @@ $(document).ready(function() {
 
         var btn = $('#btnTestEmail');
         var btnHtml = btn.html();
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Sending...');
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> {{ __("labels.backend.smtp_settings.sending") }}');
 
         $.ajax({
             url: '{{ route("admin.smtp-settings.test") }}',
@@ -268,11 +268,11 @@ $(document).ready(function() {
             data: $(this).serialize(),
             dataType: 'json',
             success: function(response) {
-                showAlert('success', response.message || 'Test email sent successfully!');
+                showAlert('success', response.message || '{{ __("labels.backend.smtp_settings.test_email_success") }}');
                 btn.prop('disabled', false).html(btnHtml);
             },
             error: function(xhr) {
-                var msg = 'Failed to send test email.';
+                var msg = '{{ __("labels.backend.smtp_settings.test_email_error") }}';
                 if (xhr.responseJSON) {
                     if (xhr.responseJSON.message) {
                         msg = xhr.responseJSON.message;

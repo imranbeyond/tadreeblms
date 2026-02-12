@@ -41,6 +41,8 @@ return array(
       'internal_attendance_reports' => 'Internal Attendence Reports',
       'external_trainee_info' => 'External Trainee Information',
       'external_attendance_report' => 'External Attendence Reports',
+      'trainee_info' => 'Trainee Info',
+      'attendance_report' => 'Attendance Report',
       'news_n_update' => 'News & Update',
       'latest_libraries' => 'Latest Libraries',
       'announcement' => 'Announcement',

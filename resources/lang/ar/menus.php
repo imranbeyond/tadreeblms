@@ -68,6 +68,8 @@ return array(
       'internal_attendance_reports' => 'تقارير الحضور الداخلية',
       'external_trainee_info' => 'معلومات المتدربين الخارجية',
       'external_attendance_report' => 'تقارير الحضور الخارجية',
+      'trainee_info' => 'معلومات المتدربين',
+      'attendance_report' => 'تقرير الحضور',
       'news_n_update' => 'الأخبار والتحديثات',
       'latest_libraries' => 'أحدث المكتبات',
       'announcement' => 'الإعلان',

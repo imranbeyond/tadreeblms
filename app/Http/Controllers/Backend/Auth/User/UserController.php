@@ -197,9 +197,9 @@ class UserController extends Controller
             'last_name',
             'email',
             'roles',
-            'permissions',
-            'employee_type'
+            'permissions'
         );
+        //'employee_type'
        // Update password ONLY if user chose to change it
         if ($request->boolean('change_password') && $request->filled('password')) {
             $data['password'] = Hash::make( $request->password );

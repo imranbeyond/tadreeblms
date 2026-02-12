@@ -387,41 +387,19 @@
                 </a>
                 <ul class="nav-dropdown-items">
 
-                    
                     <li class="nav-item ">
                         <a class="nav-link {{ $request->segment(2) == 'internal_trainee_info' ? 'active' : '' }}"
                             href="{{ route('admin.employee.internal_trainee_info') }}">
-                            <span class="title">@lang('menus.backend.sidebar.internal_trainee_info')</span>
+                            <span class="title">@lang('menus.backend.sidebar.trainee_info')</span>
                         </a>
                     </li>
-                    <li class="nav-item " style="display:none">
-                        <a class="nav-link {{ $request->segment(2) == 'reports' ? 'active' : '' }}"
-                            href="{{ url('user/internal_reports') }}/82">
-                            <span class="title">@lang('menus.backend.sidebar.final_reports')</span>
-                        </a>
-                    </li>
-                   
+
                     <li class="nav-item ">
                         <a class="nav-link {{ $request->segment(2) == 'internal-attendence-report' ? 'active' : '' }}"
                             href="{{ route('admin.employee.internal-attendence-report') }}">
-                            <span class="title">@lang('menus.backend.sidebar.internal_attendance_reports')</span>
+                            <span class="title">@lang('menus.backend.sidebar.attendance_report')</span>
                         </a>
                     </li>
-                    
-                    
-                    <li class="nav-item ">
-                        <a class="nav-link {{ $request->segment(2) == 'external_trainee_info' ? 'active' : '' }}"
-                            href="{{ route('admin.employee.external_trainee_info') }}">
-                            <span class="title">@lang('menus.backend.sidebar.external_trainee_info')</span>
-                        </a>
-                    </li>
-                    <li class="nav-item ">
-                        <a class="nav-link {{ $request->segment(2) == 'external-attendence-report' ? 'active' : '' }}"
-                            href="{{ route('admin.employee.external-attendence-report') }}">
-                            <span class="title">@lang('menus.backend.sidebar.external_attendance_report')</span>
-                        </a>
-                    </li>
-                   
 
                 </ul>
             </li>
