@@ -1381,8 +1381,9 @@ class EmployeeController extends Controller
     }
 
     public function external_trainee_info()
-    {
-        return view('backend.employee.external_info');
+    {   
+        return redirect()->route('admin.employee.internal_trainee_info');
+        //return view('backend.employee.external_info');
     }
 
     public function get_external_trainee_info(Request $request)
@@ -1583,7 +1584,6 @@ class EmployeeController extends Controller
 
             $subscribeCourse = SubscribeCourse::with('user', 'student', 'course')
                                     ->whereHas('user', function ($query) use ($user_id) {
-                                        $query->where('employee_type', 'internal');
                                         if (!empty($user_id)) {
                                             $query->where('id', $user_id);
                                         }
@@ -1703,7 +1703,6 @@ class EmployeeController extends Controller
         }
 
         $internal_users = User::query()
-                                ->where('employee_type', 'internal')
                                 //->where('active','1')
                                 ->get();
 
@@ -1739,7 +1738,6 @@ class EmployeeController extends Controller
 
             $subscribeCourse = SubscribeCourse::with('user', 'user.employee', 'student', 'course')
                 ->whereHas('user', function ($query) use ($user_id, $dept_id) {
-                    $query->where('employee_type', 'internal');
                     if (!empty($user_id)) {
                         $query->where('id', $user_id);
                     }
@@ -1897,7 +1895,6 @@ class EmployeeController extends Controller
         }
 
         $internal_users = User::query()
-            ->where('employee_type', 'internal')
             //->where('active','1')
             ->get();
 
@@ -1952,7 +1949,8 @@ class EmployeeController extends Controller
     }
 
     public function external_attendence_report()
-    {
+    {   
+        return redirect()->route('admin.employee.internal-attendence-report');
         $val = SubscribeCourse::join('courses', 'courses.id', 'subscribe_courses.course_id')
             ->join('users', 'users.id', 'subscribe_courses.user_id')
             ->leftJoin('video_progresses', 'video_progresses.user_id', 'users.id')
