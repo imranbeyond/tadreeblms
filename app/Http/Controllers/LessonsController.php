@@ -762,11 +762,14 @@ class LessonsController extends Controller
 
 
                 CustomHelper::updateGrantCertificate($course_id, \Auth::id());
-                
+
             }
 
 
-            return $video_progress->progress_per;
+            return response()->json([
+                'progress_per' => $video_progress->progress_per,
+                'lesson_completed' => $percentageCompleted >= $percentageToMarkLessonAsCompleted,
+            ]);
         }
     }
 

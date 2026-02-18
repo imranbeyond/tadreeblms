@@ -867,6 +867,8 @@
             }
         });
 
+        var lessonAlreadyCompleted = false;
+
         function time(watchPoint, progress, videoDuration) {
             //alert("hi")
             var id = "{{ $lesson->id }}";
@@ -881,6 +883,12 @@
                     'watchPoint': watchPoint,
                     'duration': parseInt(videoDuration),
                     'progress': parseInt(progress)
+                },
+                success: function(response) {
+                    if (response.lesson_completed && !lessonAlreadyCompleted) {
+                        lessonAlreadyCompleted = true;
+                        window.location.reload();
+                    }
                 },
             });
         }

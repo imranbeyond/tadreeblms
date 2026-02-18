@@ -66,16 +66,17 @@ class AssessmentController extends Controller
         
         if ($request->assignment) {
             $assignment_code = $request->assignment;
-            $id = $request->id;
+            $id = $request->input('id');
             $logged_in_user_id = auth()->user()->id;
-            
+
+            $request->session()->put('assessment_assignment_id', $id);
+            $request->session()->put('assessment_test_id', $request->input('assessment_id'));
+
             if(empty(auth()->user()->employee_type)) {
                 // admin
                 $assignment = Assignment::where('url_code', $assignment_code)->first();
                 //dd($assignment);
             } else {
-                $request->session()->put('assessment_assignment_id', $id);
-                $request->session()->put('assessment_test_id', $request->assessment_id);
                 $user_id = $logged_in_user_id;
                 $assignment = Assignment::where('url_code', $assignment_code)->first();
                 $assignment_id = $assignment->id;
@@ -90,7 +91,7 @@ class AssessmentController extends Controller
                 }
 
                 $assessment_account = courseAssignment::where('id', $id)->first();
-                
+
 
                 if ($assessment_account == null) {
                     //throw new Exception('Assignment is not valid!');
@@ -475,13 +476,13 @@ class AssessmentController extends Controller
                         }
 
                         if ($notificationSettings->shouldNotify('assessments', 'test_results_published', 'email')) {
-                            $scorePercent = round($sb->assignmentScore($user_id));
+                            $scorePercent = round((float) $sb->assignmentScore($user_id));
                             $status = $sb->course->assignmentStatus($user_id, $scorePercent) ?? 'Completed';
                             AssessmentNotification::sendAssessmentGradedEmail($notifUser, $courseName, $scorePercent, $status);
                             AssessmentNotification::createAssessmentGradedBell($notifUser, $courseName, $scorePercent, $status);
                         }
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     \Log::error('Failed to send assessment notification: ' . $e->getMessage());
                 }
             }
@@ -493,6 +494,7 @@ class AssessmentController extends Controller
 
         $request->session()->forget('assessment_user_id');
         $request->session()->forget('assessment_assignment_id');
+        $request->session()->forget('assessment_test_id');
         return json_encode(array(
             'status' => 200,
             'has_feedback' => $has_feedback,
