@@ -295,7 +295,14 @@
                    <input class="form-control" id="start_date" autocomplete="off" placeholder="yyyy-mm-dd" name="start_date" type="text" value="{{ old('start_date') }}">
 
 
+                   {!! Form::text('start_date', old('start_date'), [
+    'class' => 'form-control',
+    'id' => 'start_date',
+    'autocomplete' => 'off',
+    'placeholder' => 'yyyy-mm-dd'
+]) !!}
                 </div>
+
                 @if (Auth::user()->isAdmin())
                     <div class="col-sm-12 col-lg-4 col-md-12 form-group">
                         <label for="expire_at" class="control-label">{{ trans('labels.backend.courses.fields.expire_at') }} (yyyy-mm-dd) <span class="date-required-star" style="display:none">*</span></label>
@@ -496,7 +503,7 @@ $('#expire_at').datepicker({
         })
 
 
-       $(document).on('change', '.course-type', function () {
+        $(document).on('change', '.course-type', function () {
     const type = $(this).val();
 
     if (type === 'Live-Classroom') {
@@ -504,26 +511,24 @@ $('#expire_at').datepicker({
         $('#live-online').hide();
         $('#live-classroom').show();
 
-        $('#lesson-module-block')
-            .hide()
-            .find('input')
-            .prop('disabled', true);
+        $('#main-flow').hide();
+        $('#online-flow').show();
 
-            $('#main-flow').hide()
-            $('#online-flow').show()
+        // Start Date REQUIRED
+        $('#startDateWrapper').show();
+        $('#start_date').prop('required', true);
 
-    } else if (type === 'Offline') {
+    } else if (type === 'Offline') { // Live-Online
         $('#e-learning').hide();
         $('#live-online').show();
         $('#live-classroom').hide();
 
-        $('#lesson-module-block')
-            .hide()
-            .find('input')
-            .prop('disabled', true);
+        $('#main-flow').hide();
+        $('#online-flow').show();
 
-             $('#main-flow').hide()
-            $('#online-flow').show()
+        // Start Date REQUIRED
+        $('#startDateWrapper').show();
+        $('#start_date').prop('required', true);
 
     } else {
         // E-Learning
@@ -531,13 +536,12 @@ $('#expire_at').datepicker({
         $('#live-online').hide();
         $('#live-classroom').hide();
 
-        $('#lesson-module-block')
-            .show()
-            .find('input')
-            .prop('disabled', false);
+        $('#main-flow').show();
+        $('#online-flow').hide();
 
-            $('#main-flow').show()
-            $('#online-flow').hide()
+        // Start Date NOT required
+        $('#startDateWrapper').hide();
+        $('#start_date').val('').prop('required', false);
     }
 
     // Toggle date required asterisks based on course type
@@ -546,6 +550,12 @@ $('#expire_at').datepicker({
     } else {
         $('.date-required-star').show();
     }
+});
+
+
+
+$(document).ready(function () {
+    $('.course-type:checked').trigger('change');
 });
 
 

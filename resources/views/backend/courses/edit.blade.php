@@ -303,8 +303,6 @@
                         <label for="expire_at" class="control-label">{{ trans('labels.backend.courses.fields.expire_at') }} (yyyy-mm-dd) <span class="date-required-star" @if($course->is_online == 'Online') style="display:none" @endif>*</span></label>
                         <input class="form-control date" pattern="(?:19|20)[0-9]{2}-(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])-(?:30))|(?:(?:0[13578]|1[02])-31))" placeholder="{{ trans('labels.backend.courses.fields.expire_at') }} (Ex . 2019-01-01)" autocomplete="off" name="expire_at" type="text" value="{{ old('expire_at', $course->expire_at) }}">
 
-                    </div>
-                @endif
             </div>
 
             <!-- <div class="row">
@@ -525,18 +523,17 @@
 
             var dateToday = new Date();
 
-            $('#start_date').datepicker({
-                autoclose: true,
-                minDate: dateToday,
-                dateFormat: "{{ config('app.date_format_js') }}"
-            });
+           $('#start_date').datepicker({
+    autoclose: true,
+    startDate: new Date(),
+    format: "yyyy-mm-dd"
+});
 
-            var dateToday = new Date();
-            $('#expire_at').datepicker({
-                autoclose: true,
-                minDate: dateToday,
-                dateFormat: "{{ config('app.date_format_js') }}"
-            });
+$('#expire_at').datepicker({
+    autoclose: true,
+    startDate: new Date(),
+    format: "yyyy-mm-dd"
+});
 
             $(".js-example-placeholder-single").select2({
                 placeholder: "{{ trans('labels.backend.courses.select_category') }}",
@@ -567,23 +564,18 @@
             })
         })
 
+        function toggleCourseType(type) {
+    if (type === 'Online') {
+        // E-Learning
+        $('#e-learning').show();
+        $('#live-online, #live-classroom').hide();
 
-        $(document).on('change', '.course-type', function() {
-            if ($(this).val()) {
-                //console.log($(this).val())
-                if ($(this).val() == 'Live-Classroom') {
-                   $('#e-learning').hide();
-                   $('#live-online').hide();
-                   $('#live-classroom').show();
-                } else if($(this).val() == 'Offline') {
-                    $('#e-learning').hide();
-                   $('#live-online').show();
-                   $('#live-classroom').hide();
-                } else {
-                   $('#e-learning').show();
-                   $('#live-online').hide();
-                   $('#live-classroom').hide();
-                }
+        $('#date-fields').hide();
+        $('#start_date, #expire_at').prop('required', false);
+    } else {
+        // Live Courses
+        $('#e-learning').hide();
+        type === 'Offline' ? $('#live-online').show() : $('#live-classroom').show();
 
                 // Toggle date required asterisks based on course type
                 if ($(this).val() === 'Online') {
@@ -592,8 +584,6 @@
                     $('.date-required-star').show();
                 }
 
-            }
-        })
 
         $(document).on('change', '#media_type', function() {
             if ($(this).val()) {
