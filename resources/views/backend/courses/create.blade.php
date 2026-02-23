@@ -293,15 +293,7 @@
                     <label for="start_date" class="control-label">{{ trans('labels.backend.courses.fields.start_date') }} (yyyy-mm-dd) <span class="date-required-star" style="display:none">*</span></label>
 
                    <input class="form-control" id="start_date" autocomplete="off" placeholder="yyyy-mm-dd" name="start_date" type="text" value="{{ old('start_date') }}">
-
-
-                   {!! Form::text('start_date', old('start_date'), [
-    'class' => 'form-control',
-    'id' => 'start_date',
-    'autocomplete' => 'off',
-    'placeholder' => 'yyyy-mm-dd'
-]) !!}
-                </div>
+                   </div>
 
                 @if (Auth::user()->isAdmin())
                     <div class="col-sm-12 col-lg-4 col-md-12 form-group">
@@ -432,7 +424,8 @@ function validateWeightage() {
     });
 
     if (total > 100) {
-        alert('Total module weightage cannot exceed 100%.');
+        toastr.remove();
+        toastr.error('Total module weightage cannot exceed 100%.');
         return false;
     }
     return true;
@@ -445,8 +438,9 @@ document.querySelectorAll('.sm-input').forEach(function(input) {
             total += parseInt(i.value) || 0;
         });
         if (total > 100) {
-            input.value = ''; // reset last input
-            alert('Total module weightage cannot exceed 100%');
+            input.value = '';
+            toastr.remove();
+            toastr.error('Total module weightage cannot exceed 100%');
         }
     });
 });
@@ -592,6 +586,20 @@ $(document).ready(function () {
                 $form.find('input[type=submit], button[type=submit]').removeAttr('disabled').prop('disabled', false);
             }
 
+            function clearInlineErrors() {
+                $form.find('.inline-error').remove();
+                $form.find('.is-invalid').removeClass('is-invalid');
+            }
+
+            function showInlineError(field, message) {
+                var $field = $form.find(field);
+                $field.addClass('is-invalid');
+                $field.closest('.form-group').find('.inline-error').remove();
+                $field.after('<span class="text-danger inline-error w-100 d-block mt-1">' + message + '</span>');
+            }
+
+            clearInlineErrors();
+
             // Validate weightage
             if (!validateWeightage()) {
                 enableButtons();
@@ -602,29 +610,35 @@ $(document).ready(function () {
             var startDateVal = $('#start_date').val();
             var expireDateVal = $('#expire_at').val();
             var courseType = $('input[name="course_type"]:checked').val();
+            var hasError = false;
 
             if (courseType !== 'Online') {
-                if (!startDateVal || !expireDateVal) {
-                    alert('Start Date and Expire Date are required.');
-                    enableButtons();
-                    setTimeout(enableButtons, 0);
-                    return false;
+                if (!startDateVal) {
+                    showInlineError('#start_date', 'Start Date is required.');
+                    hasError = true;
+                }
+                if (!expireDateVal) {
+                    showInlineError('#expire_at', 'Expire Date is required.');
+                    hasError = true;
                 }
             }
 
             if (startDateVal && expireDateVal && expireDateVal < startDateVal) {
-                alert('Expire Date cannot be earlier than Start Date.');
-                enableButtons();
-                setTimeout(enableButtons, 0);
-                return false;
+                showInlineError('#expire_at', 'Expire Date cannot be earlier than Start Date.');
+                hasError = true;
             }
 
-            var today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+            var today = new Date().toISOString().slice(0, 10);
 
             if (startDateVal && startDateVal < today) {
-                alert('Start Date cannot be earlier than today.');
+                showInlineError('#start_date', 'Start Date cannot be earlier than today.');
+                hasError = true;
+            }
+
+            if (hasError) {
                 enableButtons();
                 setTimeout(enableButtons, 0);
+                scrollToClass('inline-error');
                 return false;
             }
 
