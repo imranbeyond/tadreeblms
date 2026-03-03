@@ -6,6 +6,7 @@ use App\Models\ExternalApp;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
 class ExternalAppService
@@ -227,39 +228,47 @@ class ExternalAppService
     }
 
     /**
-     * Dispatch a background job to sync one test file from local uploads/ to S3.
+     * Dispatch background jobs to sync ALL files from local uploads/ to S3 recursively.
+     * Returns the number of files queued.
      */
-    protected function dispatchTestFileSync(): void
+    protected function dispatchTestFileSync(): int
     {
         $uploadsDir = public_path('storage/uploads');
 
         if (!File::exists($uploadsDir)) {
-            Log::info('dispatchTestFileSync: No uploads directory found, skipping.');
-            return;
+            Log::info('SyncUploadsToS3: No uploads directory found, skipping.');
+            return 0;
         }
 
-        // Pick the first file in uploads/
-        $files = File::files($uploadsDir);
+        $files = File::allFiles($uploadsDir);
 
         if (empty($files)) {
-            Log::info('dispatchTestFileSync: No files in uploads/, skipping.');
-            return;
+            Log::info('SyncUploadsToS3: No files in uploads/, skipping.');
+            return 0;
         }
 
-        $file = $files[0];
-        $localPath = $file->getPathname();
-        $s3Path = 'uploads/' . $file->getFilename();
+        $count = 0;
+        foreach ($files as $file) {
+            try {
+                $relativePath = str_replace('\\', '/', $file->getRelativePathname());
+                $s3Path       = 'uploads/' . $relativePath;
 
-        \App\Jobs\SyncLocalFileToS3Job::dispatch($localPath, $s3Path);
+                \App\Jobs\SyncLocalFileToS3Job::dispatch($file->getPathname(), $s3Path);
+                $count++;
+            } catch (\Throwable $e) {
+                Log::warning('SyncUploadsToS3: Failed to queue file — ' . $e->getMessage());
+            }
+        }
 
-        Log::info("dispatchTestFileSync: Queued {$s3Path} for S3 upload.");
+        Log::info("SyncUploadsToS3: Queued {$count} file(s) for S3 upload.");
+        return $count;
     }
 
     /**
-     * Dispatch a background job to download one test file from S3 back to local.
-     * Uses the same first file that dispatchTestFileSync would have uploaded.
+     * Dispatch background jobs to download ALL files from S3 uploads/ prefix back to local.
+     * Returns the number of files queued.
      */
-    protected function dispatchTestFileDownload(): void
+    protected function dispatchTestFileDownload(): int
     {
         $uploadsDir = public_path('storage/uploads');
 
@@ -267,21 +276,30 @@ class ExternalAppService
             File::makeDirectory($uploadsDir, 0777, true);
         }
 
-        // Pick the first file in uploads/ to know what was synced
-        $files = File::files($uploadsDir);
-
-        if (empty($files)) {
-            Log::info('dispatchTestFileDownload: No files in uploads/ to reference, skipping.');
-            return;
+        try {
+            $s3Files = Storage::disk('s3')->allFiles('uploads');
+        } catch (\Exception $e) {
+            Log::warning('SyncS3ToUploads: Could not list S3 files — ' . $e->getMessage());
+            return 0;
         }
 
-        $file = $files[0];
-        $s3Path = 'uploads/' . $file->getFilename();
-        $localPath = $uploadsDir . '/' . $file->getFilename();
+        if (empty($s3Files)) {
+            Log::info('SyncS3ToUploads: No files found on S3 under uploads/, skipping.');
+            return 0;
+        }
 
-        \App\Jobs\SyncS3FileToLocalJob::dispatch($s3Path, $localPath);
+        $count = 0;
+        foreach ($s3Files as $s3Path) {
+            $relativePath = ltrim(substr($s3Path, strlen('uploads')), '/');
+            $localPath    = $uploadsDir . DIRECTORY_SEPARATOR
+                          . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
 
-        Log::info("dispatchTestFileDownload: Queued {$s3Path} for local download.");
+            \App\Jobs\SyncS3FileToLocalJob::dispatch($s3Path, $localPath);
+            $count++;
+        }
+
+        Log::info("SyncS3ToUploads: Queued {$count} file(s) for local download.");
+        return $count;
     }
 
     /**
@@ -488,9 +506,10 @@ class ExternalAppService
     }
 
     /**
-     * Toggle app enabled/disabled status
+     * Toggle app enabled/disabled status.
+     * Returns ['app' => ExternalApp, 'sync' => ['direction' => string, 'file_count' => int]|null]
      */
-    public function toggleStatus($slug, $enabled)
+    public function toggleStatus($slug, $enabled): array
     {
         $app = ExternalApp::where('slug', $slug)->firstOrFail();
 
@@ -506,24 +525,27 @@ class ExternalAppService
         // Refresh the sidebar cache so changes appear immediately
         $this->refreshEnabledAppsCache();
 
-        // When external-storage module is disabled, revert to local storage and download test file back
+        $syncInfo = null;
+
+        // When external-storage module is disabled, revert to local and sync S3 → uploads
         if ($slug === 'external-storage' && !$enabled) {
             $this->writeMainEnvFlag('FILESYSTEM_DRIVER', 'local');
-            $this->dispatchTestFileDownload();
+            $count    = $this->dispatchTestFileDownload();
+            $syncInfo = ['direction' => 's3_to_local', 'file_count' => $count];
         }
 
-        // When external-storage module is enabled, sync storage driver and queue one test file upload
+        // When external-storage module is enabled, sync storage driver and sync uploads → S3
         if ($slug === 'external-storage' && $enabled) {
             $moduleDriver = $this->getModuleEnv('external-storage', 'STORAGE_DRIVER') ?: 'local';
             $this->writeMainEnvFlag('FILESYSTEM_DRIVER', $moduleDriver === 's3' ? 's3' : 'local');
 
-            // Dispatch a test sync: pick the first file from uploads/
-            $this->dispatchTestFileSync();
+            $count    = $this->dispatchTestFileSync();
+            $syncInfo = ['direction' => 'local_to_s3', 'file_count' => $count];
         }
 
         Log::info("External app '$slug' status changed to: " . ($enabled ? 'enabled' : 'disabled'));
 
-        return $app;
+        return ['app' => $app, 'sync' => $syncInfo];
     }
 
     /**

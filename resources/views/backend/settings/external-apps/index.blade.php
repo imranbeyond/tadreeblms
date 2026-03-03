@@ -82,6 +82,30 @@
     </div>
 </div>
 
+<!-- Sync Info Modal -->
+<div class="modal fade" id="syncInfoModal" tabindex="-1" role="dialog" aria-labelledby="syncInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header" id="syncInfoModalHeader">
+                <h5 class="modal-title" id="syncInfoModalLabel">
+                    <i class="fas fa-sync-alt mr-2"></i><span id="syncInfoModalTitle">Sync Started</span>
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div id="syncInfoIcon" class="mb-3" style="font-size: 48px;"></div>
+                <p id="syncInfoMessage" class="mb-2" style="font-size: 15px;"></p>
+                <p id="syncInfoDetail" class="text-muted small mb-0"></p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-primary px-4" data-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Delete Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -132,33 +156,58 @@ $(document).ready(function() {
 
     // Toggle app status
     $('.toggle-app-status').on('change', function() {
-        const slug = $(this).data('slug');
+        const slug    = $(this).data('slug');
         const enabled = $(this).is(':checked');
         const $toggle = $(this);
+
+        // Disable toggle while request is in-flight
+        $toggle.prop('disabled', true);
 
         $.ajax({
             url: '/user/external-apps/' + slug + '/toggle-status',
             method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            data: {
-                enabled: enabled
-            },
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            data: { enabled: enabled },
             success: function(response) {
+                $toggle.prop('disabled', false);
+
                 if (response.success) {
-                    showAlert(response.message, 'success');
-                    // Delay reload to allow .env changes to settle
-                    setTimeout(function() {
-                        location.reload();
-                    }, 2500);
+                    const sync = response.sync;
+
+                    if (sync) {
+                        // S3 sync was triggered — show the detailed modal
+                        if (sync.direction === 'local_to_s3') {
+                            $('#syncInfoModalHeader').removeClass('bg-danger bg-warning text-white text-dark').addClass('bg-success text-white');
+                            $('#syncInfoModalTitle').text('Module Enabled — Syncing to S3');
+                            $('#syncInfoIcon').html('<i class="fas fa-cloud-upload-alt text-success"></i>');
+                            $('#syncInfoMessage').html('<strong>' + sync.file_count + ' file(s)</strong> have been queued for upload from <code>uploads/</code> to S3.');
+                            $('#syncInfoDetail').text('The sync runs in the background via the job queue. The page will reload when you close this dialog.');
+                        } else {
+                            $('#syncInfoModalHeader').removeClass('bg-success bg-danger text-white').addClass('bg-warning text-dark');
+                            $('#syncInfoModalTitle').text('Module Disabled — Syncing from S3');
+                            $('#syncInfoIcon').html('<i class="fas fa-cloud-download-alt text-warning"></i>');
+                            $('#syncInfoMessage').html('<strong>' + sync.file_count + ' file(s)</strong> have been queued for download from S3 back to <code>uploads/</code>.');
+                            $('#syncInfoDetail').text('The sync runs in the background via the job queue. The page will reload when you close this dialog.');
+                        }
+
+                        // Use .one() so only one reload fires even if toggled multiple times
+                        $('#syncInfoModal').off('hidden.bs.modal').one('hidden.bs.modal', function () {
+                            location.reload();
+                        });
+                        $('#syncInfoModal').modal('show');
+                    } else {
+                        // Non-S3 module — just show plain alert and reload
+                        showAlert(response.message, 'success');
+                        setTimeout(function() { location.reload(); }, 2500);
+                    }
                 } else {
                     showAlert(response.message, 'error');
                     $toggle.prop('checked', !enabled);
                 }
             },
             error: function(xhr) {
-                const response = xhr.responseJSON;
+                $toggle.prop('disabled', false);
+                const response = xhr.responseJSON || {};
                 showAlert(response.message || 'An error occurred', 'error');
                 $toggle.prop('checked', !enabled);
             }

@@ -120,25 +120,44 @@ class ExternalAppsController extends Controller
         }
 
         try {
-            $enabled = $request->input('enabled') === 'true' || $request->input('enabled') === 1;
-            $app     = $this->externalAppService->toggleStatus($slug, $enabled);
+            $enabled = filter_var($request->input('enabled'), FILTER_VALIDATE_BOOLEAN);
+            $result  = $this->externalAppService->toggleStatus($slug, $enabled);
+
+            $app      = $result['app'];
+            $syncInfo = $result['sync'];
+
+            // Build a human-readable message
+            if ($syncInfo) {
+                $count = $syncInfo['file_count'];
+                if ($syncInfo['direction'] === 'local_to_s3') {
+                    $message = $enabled
+                        ? "Module enabled. Syncing {$count} file(s) from uploads to S3 in the background."
+                        : "Module disabled.";
+                } else {
+                    $message = "Module disabled. Downloading {$count} file(s) from S3 to uploads in the background.";
+                }
+            } else {
+                $message = $enabled ? 'Module enabled successfully.' : 'Module disabled successfully.';
+            }
 
             return response()->json([
-                'success' => true,
-                'message' => $enabled ? 'Module enabled successfully' : 'Module disabled successfully',
-                'app'     => $app,
+                'success'   => true,
+                'message'   => $message,
+                'sync'      => $syncInfo,
+                'app'       => $app,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error toggling external app status', [
                 'slug'  => $slug,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage(),
-            ], 400);
+            ], 500);
         }
     }
 
