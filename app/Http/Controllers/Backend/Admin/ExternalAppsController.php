@@ -120,25 +120,36 @@ class ExternalAppsController extends Controller
         }
 
         try {
-            $enabled = $request->input('enabled') === 'true' || $request->input('enabled') === 1;
-            $app     = $this->externalAppService->toggleStatus($slug, $enabled);
+            $enabled  = filter_var($request->input('enabled'), FILTER_VALIDATE_BOOLEAN);
+            $result   = $this->externalAppService->toggleStatus($slug, $enabled);
+            $syncInfo = $result['sync'] ?? null;
+
+            if ($syncInfo) {
+                $count   = $syncInfo['file_count'];
+                $message = $syncInfo['direction'] === 'local_to_s3'
+                    ? "Module enabled. {$count} file(s) queued for upload to S3."
+                    : "Module disabled. {$count} file(s) queued for download from S3.";
+            } else {
+                $message = $enabled ? 'Module enabled successfully.' : 'Module disabled successfully.';
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => $enabled ? 'Module enabled successfully' : 'Module disabled successfully',
-                'app'     => $app,
+                'message' => $message,
+                'sync'    => $syncInfo,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error toggling external app status', [
                 'slug'  => $slug,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage(),
-            ], 400);
+            ], 500);
         }
     }
 

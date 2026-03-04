@@ -82,6 +82,30 @@
     </div>
 </div>
 
+<!-- Sync Info Modal -->
+<div class="modal fade" id="syncInfoModal" tabindex="-1" role="dialog" aria-labelledby="syncInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header" id="syncInfoModalHeader">
+                <h5 class="modal-title" id="syncInfoModalLabel">
+                    <i class="fas fa-sync-alt mr-2"></i><span id="syncInfoModalTitle">Sync Started</span>
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div id="syncInfoIcon" class="mb-3" style="font-size: 48px;"></div>
+                <p id="syncInfoMessage" class="mb-2" style="font-size: 15px;"></p>
+                <p id="syncInfoDetail" class="text-muted small mb-0"></p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-primary px-4" data-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Delete Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -131,34 +155,60 @@ $(document).ready(function() {
     var pendingDeleteSlug = null;
 
     // Toggle app status
+    var toggleInFlight = {};
+
     $('.toggle-app-status').on('change', function() {
-        const slug = $(this).data('slug');
+        const slug    = $(this).data('slug');
         const enabled = $(this).is(':checked');
         const $toggle = $(this);
+
+        // Prevent duplicate requests for the same module
+        if (toggleInFlight[slug]) {
+            $toggle.prop('checked', !enabled);
+            return;
+        }
+        toggleInFlight[slug] = true;
 
         $.ajax({
             url: '/user/external-apps/' + slug + '/toggle-status',
             method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            data: {
-                enabled: enabled
-            },
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            data: { enabled: enabled },
             success: function(response) {
+                toggleInFlight[slug] = false;
+
                 if (response.success) {
-                    showAlert(response.message, 'success');
-                    // Delay reload to allow .env changes to settle
-                    setTimeout(function() {
-                        location.reload();
-                    }, 2500);
+                    var sync = response.sync;
+
+                    if (sync) {
+                        if (sync.direction === 'local_to_s3') {
+                            $('#syncInfoModalHeader').removeClass('bg-danger bg-warning text-white text-dark').addClass('bg-success text-white');
+                            $('#syncInfoModalTitle').text('Module Enabled — Syncing to S3');
+                            $('#syncInfoIcon').html('<i class="fas fa-cloud-upload-alt text-success"></i>');
+                            $('#syncInfoMessage').html('<strong>' + sync.file_count + ' file(s)</strong> queued for upload to S3.');
+                        } else {
+                            $('#syncInfoModalHeader').removeClass('bg-success bg-danger text-white').addClass('bg-warning text-dark');
+                            $('#syncInfoModalTitle').text('Module Disabled — Syncing from S3');
+                            $('#syncInfoIcon').html('<i class="fas fa-cloud-download-alt text-warning"></i>');
+                            $('#syncInfoMessage').html('<strong>' + sync.file_count + ' file(s)</strong> queued for download from S3.');
+                        }
+                        $('#syncInfoDetail').text('Sync runs in the background. Page will reload when you close this dialog.');
+                        $('#syncInfoModal').off('hidden.bs.modal').one('hidden.bs.modal', function () {
+                            location.reload();
+                        });
+                        $('#syncInfoModal').modal('show');
+                    } else {
+                        showAlert(response.message, 'success');
+                        setTimeout(function() { location.reload(); }, 1500);
+                    }
                 } else {
-                    showAlert(response.message, 'error');
                     $toggle.prop('checked', !enabled);
+                    showAlert(response.message, 'error');
                 }
             },
             error: function(xhr) {
-                const response = xhr.responseJSON;
+                toggleInFlight[slug] = false;
+                const response = xhr.responseJSON || {};
                 showAlert(response.message || 'An error occurred', 'error');
                 $toggle.prop('checked', !enabled);
             }

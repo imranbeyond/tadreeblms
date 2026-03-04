@@ -73,17 +73,6 @@ class S3StorageSettingsController extends Controller
             'S3_ROOT'              => $request->input('s3_root', ''),
         ]);
 
-        // Sync to main .env so Laravel's default Storage::disk('s3') uses these credentials
-        $this->externalAppService->syncStorageEnv($driver, [
-            'AWS_ACCESS_KEY_ID'     => $request->input('s3_access_key_id', ''),
-            'AWS_SECRET_ACCESS_KEY' => $request->input('s3_secret_access_key', ''),
-            'AWS_DEFAULT_REGION'    => $request->input('s3_default_region', 'us-east-1'),
-            'AWS_BUCKET'            => $request->input('s3_bucket', ''),
-            'AWS_URL'               => $request->input('s3_url', ''),
-            'AWS_ENDPOINT'          => $request->input('s3_endpoint', ''),
-            'AWS_ROOT'              => $request->input('s3_root', ''),
-        ]);
-
         return redirect()->route('admin.s3-storage-settings')
             ->with('success', 'S3 storage settings saved successfully.');
     }
