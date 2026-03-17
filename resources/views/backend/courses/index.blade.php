@@ -59,6 +59,7 @@
                         <option value="">All</option>
                         <option value="published">Published</option>
                         <option value="draft">Draft</option>
+                        <option value="expired">Expired</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -310,7 +311,7 @@
     name: "start_date"
 },
 {
-    data: "expiry_date",
+    data: "expire_at",
     name: "expire_at"
 },
                     {
