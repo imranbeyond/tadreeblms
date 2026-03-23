@@ -11,6 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::create('lesson_videos', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('lesson_id')->constrained()->cascadeOnDelete();
         if (Schema::hasTable('lesson_videos')) {
             return;
         }
