@@ -111,6 +111,8 @@ Route::get('reset-demo', function () {
 require_once "delta_academy_custom_routes.php";
 
 
+Route::get('/certificate-verification', [\App\Http\Controllers\CertificateVerificationController::class, 'verify'])->name('frontend.certificates.getVerificationForm');
+
 /*
  * Frontend Routes
  * Namespaces indicate folder structure
@@ -316,9 +318,8 @@ Route::group(['namespace' => 'Backend', 'prefix' => 'admin', 'middleware' => con
     Route::post('change-location', 'MenuController@updateLocation')->name('update-location');
 });
 
-Route::get('certificate-verification', 'Backend\CertificateController@getVerificationForm')->name('frontend.certificates.getVerificationForm');
-Route::post('certificate-verification', 'Backend\CertificateController@verifyCertificate')->name('frontend.certificates.verify');
-Route::get('certificates/download', ['uses' => 'Backend\CertificateController@download', 'as' => 'certificates.download']);
+
+Route::get('user/certificates/download/{certificate_id?}', ['uses' => 'Backend\CertificateController@download', 'as' => 'certificates.download']);
 Route::get('user/certificates/generate/{course_id}/{user_id}', 'Backend\CertificateController@generateCertificate')->name('admin.certificates.generate');
 
 
