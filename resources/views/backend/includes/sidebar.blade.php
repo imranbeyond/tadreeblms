@@ -725,6 +725,13 @@
                         </a>
                     </li>
 
+                    <li class="nav-item">
+                        <a class="nav-link {{ active_class(Active::checkUriPattern('admin/settings/certificate-template*')) }}"
+                            href="{{ route('admin.certificate-template-settings') }}">
+                            <span class="title"><i class="fas fa-certificate mr-1"></i>Certificate Template</span>
+                        </a>
+                    </li>
+
 
                     <li class="nav-item">
                         <a class="nav-link {{ active_class(Active::checkUriPattern('user/settings/smtp*')) }}"

@@ -339,29 +339,28 @@ $count = is_array($titles) ? count($titles) : 0;
                 $lesson->full_text = $request->full_text[$i] ?? null;
                 $lesson->lesson_start_date = $request->lesson_start_date ? date('Y-m-d H:i', strtotime($request->lesson_start_date)) : null;
                 $lesson->save();
-if($i == 0 && $request->has('videos')){
 
-    foreach($request->videos as $index => $video){
+                // Save videos for this specific lesson
+                $lessonVideos = $request->input("videos.$i", []);
+                if (count($lessonVideos) > 0) {
+                    foreach ($lessonVideos as $index => $video) {
+                        $filePath = null;
+                        if ($request->hasFile("videos.$i.$index.file")) {
+                            $filePath = $request->file("videos.$i.$index.file")
+                                ->store('lesson_videos', 'public');
+                        }
 
-        $filePath = null;
-
-        
-        if(isset($video['file']) && $request->hasFile("videos.$index.file")){
-            $filePath = $request->file("videos.$index.file")
-                ->store('lesson_videos','public');
-        }
-
-        LessonVideo::create([
-            'lesson_id' => $lesson->id,
-            'title' => $video['title'] ?? null,
-            'type' => $video['type'] ?? 'upload',
-            'url' => $video['url'] ?? null,
-            'file_path' => $filePath,
-            'sort_order' => $index,
-            'is_preview' => isset($video['is_preview']) ? 1 : 0
-        ]);
-    }
-}
+                        LessonVideo::create([
+                            'lesson_id' => $lesson->id,
+                            'title' => $video['title'] ?? null,
+                            'type' => $video['type'] ?? 'upload',
+                            'url' => $video['url'] ?? null,
+                            'file_path' => $filePath,
+                            'sort_order' => $index,
+                            'is_preview' => isset($video['is_preview']) ? 1 : 0
+                        ]);
+                    }
+                }
                 // Lesson added notification
                 try {
                     $notificationSettings = app(NotificationSettingsService::class);
@@ -587,83 +586,44 @@ if (!empty($audioFiles)) {
 
             //throw new Exception('This is an intentional exception for testing purposes.');
             //dd("update");
-            //Saving  videos
-            if ($request->media_type != "") {
-                $model_type = Lesson::class;
-                $model_id = $lesson->id;
-                $size = 0;
-                $media = '';
-                $url = '';
-                $video_id = '';
-                $name = $lesson->title . ' - video';
-                $media = $lesson->mediavideo;
-                if ($media == "") {
-                    $media = new  Media();
-                }
-                if ($request->media_type != 'upload') {
-                    if (($request->media_type == 'youtube') || ($request->media_type == 'vimeo')) {
-                        $video = $request->video;
-                        $url = $video;
-                        $video_id = array_last(explode('/', $request->video));
-                        $size = 0;
-                    } elseif ($request->media_type == 'embed') {
-                        $url = $request->video;
-                        $filename = $lesson->title . ' - video';
+            // Saving videos (multi-video support)
+            if ($request->has('videos')) {
+                foreach ($request->videos as $index => $videoData) {
+                    // Check if we should delete this video
+                    if (isset($videoData['delete']) && $videoData['delete'] == 1) {
+                        if (isset($videoData['id'])) {
+                            LessonVideo::where('id', $videoData['id'])->delete();
+                        }
+                        continue;
                     }
-                    $media->model_type = $model_type;
-                    $media->model_id = $model_id;
-                    $media->name = $name;
-                    $media->url = $url;
-                    $media->type = $request->media_type;
-                    $media->file_name = $video_id;
-                    $media->size = 0;
-                    $media->save();
-                }
 
-                if ($request->media_type == 'upload') {
-                    if (\Illuminate\Support\Facades\Request::hasFile('video_file')) {
-                        $file = \Illuminate\Support\Facades\Request::file('video_file');
-                        $filename = time() . '-' . $file->getClientOriginalName();
-                        $size = $file->getSize() / 1024;
-                        $path = public_path() . '/storage/uploads/';
+                    $filePath = null;
+                    if ($request->hasFile("videos.$index.file")) {
+                        $filePath = $request->file("videos.$index.file")
+                            ->store('lesson_videos', 'public');
+                    }
 
-                        try {
-                            //throw new Exception("Intentional error for testing.");
-                            //$file->move($path, $filename);
-                            $url = CustomHelper::uploadToS3($file, $filename);
-                        } catch (Exception $e) {
-                            throw new Exception("The video is not uploaded"); 
-                        }
+                    $data = [
+                        'lesson_id' => $lesson->id,
+                        'title' => $videoData['title'] ?? null,
+                        'type' => $videoData['type'] ?? 'upload',
+                        'url' => $videoData['url'] ?? null,
+                        'sort_order' => $index,
+                        'is_preview' => isset($videoData['is_preview']) ? 1 : 0
+                    ];
 
-                        $video_id = $filename;
-                        //$url = asset('storage/uploads/' . $filename);
+                    if ($filePath) {
+                        $data['file_path'] = $filePath;
+                    }
 
-                        $media = Media::query()
-                            //->where('type', '=', $request->media_type)
-                            ->where('model_type', '=', 'App\Models\Lesson')
-                            ->where('model_id', '=', $lesson->id)
-                            ->first();
-
-                        //dd($media);
-
-                        if (!$media) {
-                            $media = new Media();
-                        }
-                        $media->model_type = $model_type;
-                        $media->model_id = $model_id;
-                        $media->name = $name;
-                        $media->url = $url;
-                        $media->aws_url = $url;
-                        $media->type = $request->media_type;
-                        $media->file_name = $video_id;
-                        $media->size = 0;
-
-                        //dd($media);
-
-                        $media->save();
+                    if (isset($videoData['id'])) {
+                        LessonVideo::where('id', $videoData['id'])->update($data);
+                    } else {
+                        LessonVideo::create($data);
                     }
                 }
             }
+
             if ($request->hasFile('add_pdf')) {
                 $pdf = $lesson->mediaPDF;
                 if ($pdf) {
